@@ -36,7 +36,7 @@ data["Churn"] = data["Churn"].map({"No": 0, "Yes": 1})
 X = data.drop("Churn", axis=1)
 y = data["Churn"]
 
-# 3. Train-test split
+# Train-test split
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
@@ -47,13 +47,14 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 # Distance Functions
+# Calculates the straight-line distance
 def euclidean_distance(a, b):
     return np.sqrt(np.sum((a - b) ** 2))
-
+# Calculates the city-block distance
 def manhattan_distance(a, b):
     return np.sum(np.abs(a - b))
 
-# 5. Train KNN model
+# Train KNN model
 k_values = range(1, 21)
 euclidean_accuracies = []
 manhattan_accuracies = []
@@ -80,6 +81,30 @@ plt.legend()
 plt.grid()
 plt.show()
 
+#Decision Boundary Visualization (2D)
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_train_scaled)
+
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_pca, y_train)
+
+x_min, x_max = X_pca[:, 0].min() - 1, X_pca[:, 0].max() + 1
+y_min, y_max = X_pca[:, 1].min() - 1, X_pca[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.02),
+                     np.arange(y_min, y_max, 0.02))
+
+Z = knn.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+plt.figure(figsize=(7, 5))
+plt.contourf(xx, yy, Z, alpha=0.4)
+plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y_train, edgecolor="k")
+plt.title("KNN Decision Boundary (PCA Reduced)")
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.show()
+
+
 # Final model evaluation 
 best_k = k_values[np.argmax(euclidean_accuracies)]
 print("Best k:", best_k)
@@ -90,3 +115,8 @@ y_final_pred = knn_final.predict(X_test_scaled)
 
 print("\nClassification Report:")
 print(classification_report(y_test, y_final_pred))
+# Engineering Recommendations
+# Parameter Optimization: Select the value of K using validation experiments that prioritize recall and F1-score rather than accuracy alone.
+# Feature Engineering: Remove redundant or weakly informative features to improve both prediction accuracy and computational efficiency.
+# Performance Optimization: For larger datasets, consider using indexing structures (e.g., KD-tree) or approximate nearest neighbor methods to reduce prediction time.
+# Operational Integration: Integrate the system into customer management workflows as a decision-support tool rather than an automated decision-maker.
